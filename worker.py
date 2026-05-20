@@ -2,12 +2,15 @@ import os
 import json
 import logging
 import redis
+import socket
 from dotenv import load_dotenv
 
 from processor import process_job
 from manifest import JobRequest
 
 load_dotenv()
+
+WORKER_ID = os.getenv("WORKER_ID", socket.gethostname())
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +57,7 @@ def main():
                 status_msg = {
                     "job_id": job_req.job_id,
                     "status": "completed",
+                    "worker_id": WORKER_ID,
                     "manifest": manifest.model_dump()
                 }
                 r.lpush(STATUS_QUEUE, json.dumps(status_msg))
@@ -72,6 +76,7 @@ def main():
                 status_msg = {
                     "job_id": job_id,
                     "status": "failed",
+                    "worker_id": WORKER_ID,
                     "error": str(e)
                 }
                 r.lpush(STATUS_QUEUE, json.dumps(status_msg))
