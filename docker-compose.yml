@@ -35,7 +35,7 @@ services:
       "
 
   audio-ingest:
-    build: .
+    image: ghcr.io/stenseegel/audio-ingest:latest
     depends_on:
       - redis
       - minio-init
