@@ -11,6 +11,29 @@ The `audio-ingest` service is a Python-based worker application that handles asy
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
+## Data Flow
+
+The following sequence diagram illustrates how the `audio-ingest` worker interacts with the main application (e.g., HAWKI), Redis, and MinIO during the transcription pipeline:
+
+```mermaid
+sequenceDiagram
+    participant H as Main App (HAWKI)
+    participant M as MinIO (S3 Storage)
+    participant R as Redis (Queues)
+    participant W as Audio Ingest Worker
+    
+    H->>M: 1. Upload original audio/video file
+    H->>R: 2. Push Job (job_id, s3_path) to "audio_preprocessing_jobs"
+    R->>W: 3. Worker pops Job from queue
+    W->>R: 4. Push status "processing" to "audio_preprocessing_status"
+    W->>M: 5. Download original file
+    Note over W: 6. Process & Split audio (FFmpeg)
+    W->>M: 7. Upload audio chunks & manifest.json
+    W->>R: 8. Push status "completed" (with manifest data)
+    R->>H: 9. Status Daemon reads "completed" status
+    Note over H: 10. Main App initiates AI Transcription
+```
+
 ---
 
 ## Deployment (via Docker Compose)
