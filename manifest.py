@@ -11,7 +11,7 @@ class JobRequest(BaseModel):
     job_id: str
     input_path: str
     output_path: str
-    language: str = "de"
+    language: Optional[str] = None
     options: JobOptions = Field(default_factory=JobOptions)
 
 class SourceInfo(BaseModel):
