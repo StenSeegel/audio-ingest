@@ -49,11 +49,12 @@ def get_audio_info(file_path: str) -> Dict[str, Any]:
     }
 
 def normalize_audio(input_path: str, output_path: str, sample_rate: int = 16000, channels: int = 1):
-    """Converts audio to mono 16kHz PCM WAV."""
+    """Converts audio to mono 16kHz PCM WAV and normalizes dynamic range."""
     cmd = [
         "ffmpeg",
         "-y",
         "-i", input_path,
+        "-af", "dynaudnorm=p=0.95:s=5",
         "-ac", str(channels),
         "-ar", str(sample_rate),
         "-c:a", "pcm_s16le",
