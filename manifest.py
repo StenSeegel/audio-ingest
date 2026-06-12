@@ -6,6 +6,7 @@ class JobOptions(BaseModel):
     channels: int = 1
     chunk_minutes: int = 10
     overlap_seconds: int = 3
+    extract_snippets: Optional[List[dict]] = None
 
 class JobRequest(BaseModel):
     job_id: str
@@ -41,3 +42,4 @@ class JobManifest(BaseModel):
     source: SourceInfo
     normalized: NormalizedInfo
     chunks: List[ChunkInfo]
+    extracted_snippets: Optional[dict] = None

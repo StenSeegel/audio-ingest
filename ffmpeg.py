@@ -122,3 +122,32 @@ def split_into_chunks(input_path: str, output_dir: str, duration_seconds: float,
         index += 1
         
     return chunks
+
+import base64
+
+def extract_base64_snippet(input_path: str, start: float, end: float) -> str:
+    """Extracts a snippet of audio, encodes it to base64."""
+    duration = end - start
+    tmp_path = f"/tmp/snippet_{start}_{duration}.wav"
+    
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-ss", str(start),
+        "-t", str(duration),
+        "-i", input_path,
+        "-c", "copy",
+        tmp_path
+    ]
+    
+    logger.info(f"Extracting snippet for base64: {' '.join(cmd)}")
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    
+    with open(tmp_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode('utf-8')
+        
+    import os
+    if os.path.exists(tmp_path):
+        os.remove(tmp_path)
+        
+    return f"data:audio/wav;base64,{encoded}"

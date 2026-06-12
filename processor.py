@@ -81,13 +81,31 @@ def process_job(job_req: JobRequest) -> JobManifest:
                 overlap_end=c["overlap_end"]
             ))
             
-        # 6. Generate and upload manifest
+        # 6. Extract base64 snippets if requested
+        extracted_snippets = None
+        if job_req.options.extract_snippets:
+            logger.info("Extracting base64 audio snippets")
+            extracted_snippets = {}
+            from ffmpeg import extract_base64_snippet
+            for snippet in job_req.options.extract_snippets:
+                sp_id = snippet.get("id")
+                start = snippet.get("start", 0.0)
+                end = snippet.get("end", 0.0)
+                if sp_id and end > start:
+                    try:
+                        b64 = extract_base64_snippet(local_normalized, start, end)
+                        extracted_snippets[sp_id] = b64
+                    except Exception as e:
+                        logger.error(f"Failed to extract snippet for {sp_id}: {e}")
+        
+        # 7. Generate and upload manifest
         logger.info("Generating manifest")
         manifest = JobManifest(
             job_id=job_req.job_id,
             source=source_info,
             normalized=normalized_info,
-            chunks=manifest_chunks
+            chunks=manifest_chunks,
+            extracted_snippets=extracted_snippets
         )
         
         local_manifest = os.path.join(work_dir, "manifest.json")
