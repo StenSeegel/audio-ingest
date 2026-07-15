@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import time
 import redis
 import socket
 from dotenv import load_dotenv
@@ -32,14 +33,20 @@ def main():
         port=REDIS_PORT,
         db=REDIS_DB,
         password=REDIS_PASSWORD,
-        decode_responses=True
+        decode_responses=True,
+        socket_keepalive=True,
+        health_check_interval=30
     )
-    
+
     logger.info("Worker started, waiting for jobs...")
+    error_backoff = 1
     while True:
         try:
-            # Block until an item is available in the queue
-            result = r.blpop(QUEUE_NAME, timeout=0)
+            # Block until an item is available in the queue. A finite timeout
+            # (instead of 0 = forever) lets the loop survive half-open
+            # connections and keeps the idle cost at one request per 30s.
+            result = r.blpop(QUEUE_NAME, timeout=30)
+            error_backoff = 1
             if not result:
                 continue
                 
@@ -82,7 +89,12 @@ def main():
                 r.lpush(STATUS_QUEUE, json.dumps(status_msg))
                 
         except Exception as e:
-            logger.error(f"Worker loop error: {e}")
+            # Without a pause, a dead Redis connection turns this loop into a
+            # 100% CPU spin (observed: 6 days at ~98% of a core). Back off
+            # exponentially up to 30s; redis-py reconnects on the next call.
+            logger.error(f"Worker loop error: {e} (retrying in {error_backoff}s)")
+            time.sleep(error_backoff)
+            error_backoff = min(error_backoff * 2, 30)
 
 if __name__ == "__main__":
     main()
